@@ -1,7 +1,8 @@
+import json
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import select
-from .models import create_db, Incomes
+from .models import create_db, Incomes, Outgoings
 
 
 engine = create_db()
@@ -45,3 +46,74 @@ def delete_income(id: int) -> Optional[Incomes]:
             session.delete(income)
         session.commit()
     return income
+
+
+def add_outgoing(
+    name: str, expenses: dict, income_id: Optional[int] = None
+) -> Outgoings:
+    chosen_income = None
+    if income_id:
+        for income in get_incomes():
+            if income.id == income_id:
+                chosen_income = income
+                break
+
+    with Session(engine) as session:
+        new_outgoing = Outgoings(
+            name=name, expenses=json.dumps(expenses), ingoing=chosen_income
+        )
+        print(new_outgoing.name, new_outgoing.expenses, new_outgoing.ingoing)
+        session.add(new_outgoing)
+        session.commit()
+    return new_outgoing
+
+
+def get_outgoings() -> List[Outgoings]:
+    search = select(Outgoings)
+    outgoings = []
+    with Session(engine) as session:
+        for result in session.scalars(search):
+            outgoings.append(result)
+    return outgoings
+
+
+def get_outgoing_income(outgoing: Outgoings) -> Incomes:
+    income = None
+    with Session(engine) as session:
+        if outgoing.income_id:
+            outgoing = session.get(Outgoings, outgoing.id)
+            income = outgoing.ingoing
+    return income
+
+
+def update_outgoing(
+    id: int, name: str, expenses: dict, income_id: Optional[int] = None
+) -> Optional[dict]:
+    chosen_income = None
+    if income_id:
+        for income in get_incomes():
+            if income.id == income_id:
+                chosen_income = income
+                break
+    search = select(Outgoings).where(Outgoings.id == id)
+    with Session(engine) as session:
+        outgoing_obj = session.scalars(search).one_or_none()
+        if not outgoing_obj:
+            return None
+        if name:
+            outgoing_obj.name = name
+        if expenses:
+            outgoing_obj.expenses = json.dumps(expenses)
+        if chosen_income:
+            outgoing_obj.ingoing = chosen_income
+        session.commit()
+    return expenses
+
+
+def delete_outgoing(id: int) -> Optional[Outgoings]:
+    with Session(engine) as session:
+        outgoing = session.get(Outgoings, id)
+        if outgoing:
+            session.delete(outgoing)
+        session.commit()
+    return outgoing

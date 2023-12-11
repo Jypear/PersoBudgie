@@ -22,7 +22,7 @@ class Outgoings(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
-    income_id: Mapped[int] = mapped_column(ForeignKey("income_streams.id"))
+    income_id: Mapped[Optional[int]] = mapped_column(ForeignKey("income_streams.id"))
     ingoing: Mapped[Optional["Incomes"]] = relationship(back_populates="outgoing")
     expenses: Mapped[Optional[str]] = mapped_column(String())
 
